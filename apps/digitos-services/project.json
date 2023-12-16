@@ -1,0 +1,53 @@
+{
+  "name": "digitos-services",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "apps/digitos-services/src",
+  "projectType": "application",
+  "targets": {
+    "build": {
+      "executor": "@nx/webpack:webpack",
+      "outputs": ["{options.outputPath}"],
+      "defaultConfiguration": "production",
+      "options": {
+        "target": "node",
+        "compiler": "tsc",
+        "outputPath": "dist/apps/digitos-services",
+        "main": "apps/digitos-services/src/main.ts",
+        "tsConfig": "apps/digitos-services/tsconfig.app.json",
+        "assets": ["apps/digitos-services/src/assets"],
+        "webpackConfig": "apps/digitos-services/webpack.config.js"
+      },
+      "configurations": {
+        "development": {},
+        "production": {}
+      }
+    },
+    "serve": {
+      "executor": "@nx/js:node",
+      "defaultConfiguration": "development",
+      "options": {
+        "buildTarget": "digitos-services:build"
+      },
+      "configurations": {
+        "development": {
+          "buildTarget": "digitos-services:build:development"
+        },
+        "production": {
+          "buildTarget": "digitos-services:build:production"
+        }
+      }
+    },
+    "lint": {
+      "executor": "@nx/eslint:lint",
+      "outputs": ["{options.outputFile}"]
+    },
+    "test": {
+      "executor": "@nx/jest:jest",
+      "outputs": ["{workspaceRoot}/coverage/{projectRoot}"],
+      "options": {
+        "jestConfig": "apps/digitos-services/jest.config.ts"
+      }
+    }
+  },
+  "tags": []
+}
