@@ -1,5 +1,9 @@
 import { onRequest } from 'firebase-functions/v2/https';
 import * as logger from 'firebase-functions/logger';
+import * as admin from 'firebase-admin';
+
+admin.initializeApp();
+const db = admin.firestore();
 
 /**
  * Generates a set of unique random integers between 0 and 99
@@ -90,21 +94,39 @@ function generatePuzzle() {
 
     if (!result.success) {
         console.log(`Couldn't find a solution for target: ${target}`);
+        return null;
     } else {
         console.log(`Operations to get to target ${target}:`);
         for (const step of result.operations) {
             console.log(step.operation);
             console.log(`Using numbers: ${Array.from(step.set)}`);
         }
+
+        // Returning puzzle data
+        return {
+            initial_numbers: Array.from(integers),
+            target_number: target,
+            difficulty: 0, // Adjust the difficulty as needed
+        };
     }
 }
 
-export const helloWorld = onRequest((request, response) => {
-    logger.info('Hello logs!', { structuredData: true });
+export const generateNewPuzzle = onRequest(async (request, response) => {
+    logger.info('generatePuzzleCloudFunction begin', { structuredData: true });
 
-    generatePuzzle();
+    const puzzleData = generatePuzzle();
 
-    // TODO store in firestore
-
-    response.send('Hello from Firebase!');
+    if (puzzleData) {
+        try {
+            const docRef = await db.collection('games').add(puzzleData);
+            console.log(`Puzzle stored in Firestore with ID: ${docRef.id}`);
+            // eslint-disable-next-line max-len
+            response.send(`Puzzle generated and stored in Firestore with ID: ${docRef.id}`);
+        } catch (error) {
+            console.error('Error storing puzzle in Firestore', error);
+            response.status(500).send('Failed to store puzzle in Firestore');
+        }
+    } else {
+        response.status(500).send('Failed to generate puzzle');
+    }
 });
