@@ -33,5 +33,6 @@ module.exports = {
         'valid-jsdoc': 0,
         'require-jsdoc': 0,
         'semi': 0,
+        'max-len': ['error', { 'code': 120 }],
     },
 };

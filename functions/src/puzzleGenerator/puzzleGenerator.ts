@@ -1,6 +1,7 @@
 import { onRequest } from 'firebase-functions/v2/https';
 import * as logger from 'firebase-functions/logger';
 import * as admin from 'firebase-admin';
+import { FirestorePaths } from '../constants';
 
 admin.initializeApp();
 const db = admin.firestore();
@@ -118,7 +119,7 @@ export const generateNewPuzzle = onRequest(async (request, response) => {
 
     if (puzzleData) {
         try {
-            const docRef = await db.collection('games').add(puzzleData);
+            const docRef = await db.collection(FirestorePaths.PUZZLE_COLLECTION).add(puzzleData);
             console.log(`Puzzle stored in Firestore with ID: ${docRef.id}`);
             // eslint-disable-next-line max-len
             response.send(`Puzzle generated and stored in Firestore with ID: ${docRef.id}`);
