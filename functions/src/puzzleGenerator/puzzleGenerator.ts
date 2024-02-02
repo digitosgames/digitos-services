@@ -12,7 +12,8 @@ const db = admin.firestore();
 function randomIntegers(n = 6): Set<number> {
     const integers = new Set<number>();
     while (integers.size < n) {
-        integers.add(Math.floor(Math.random() * 100));
+        const nextInt = Math.floor(Math.random() * 100);
+        if (nextInt !== 0) integers.add(nextInt);
     }
     return integers;
 }
