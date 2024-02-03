@@ -4,6 +4,7 @@ import { FirestorePaths } from '../constants'
 import { PuzzleStep } from './PuzzleStep'
 import { https } from 'firebase-functions/v2'
 import { GeneratePuzzleRequest } from './GeneratePuzzleRequest'
+import { PuzzleData } from './PuzzleData'
 
 // rules for the puzzle generator
 
@@ -98,7 +99,7 @@ function calculateTarget(
     return { success: false, operations: [] }
 }
 
-function generatePuzzle(difficulty = 1) {
+function generatePuzzle(difficulty = 1): PuzzleData {
     for (let attempt = 0; attempt < 10; attempt++) {
         const integers = randomIntegers(6, difficulty)
         const target = Math.floor(Math.random() * 100) + 1
