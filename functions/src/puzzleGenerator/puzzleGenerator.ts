@@ -159,6 +159,11 @@ export const generateNewPuzzle = https.onRequest(async (request, response) => {
         ? parseInt(requestBody.numberOfPuzzles, 10)
         : 1
 
+    if (numberOfPuzzles < 1 || numberOfPuzzles > 20) {
+        response.status(400).send('Number of puzzles must be between 1 and 20')
+        return
+    }
+
     const puzzlesToGenerate = []
     for (let i = 0; i < numberOfPuzzles; i++) {
         const puzzleData = generatePuzzle(difficulty)
