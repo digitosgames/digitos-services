@@ -166,7 +166,7 @@ export const generateNewPuzzle = https.onRequest(async (request, response) => {
             `Successfully generated and stored ${puzzlesToGenerate.length} puzzles.`,
         )
     } catch (error) {
-        console.error('Error storing puzzles in Firestore', error)
+        logger.error('Error storing puzzles in Firestore', error)
         response.status(500).send('Failed to store puzzles in Firestore')
     }
 })
