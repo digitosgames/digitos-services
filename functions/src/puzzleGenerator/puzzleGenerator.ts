@@ -2,7 +2,7 @@ import * as logger from 'firebase-functions/logger'
 import * as admin from 'firebase-admin'
 import { FirestorePaths } from '../constants'
 import { PuzzleStep } from './PuzzleStep'
-import { https } from 'firebase-functions'
+import { https } from 'firebase-functions/v2'
 import { GeneratePuzzleRequest } from './GeneratePuzzleRequest'
 
 // rules for the puzzle generator
