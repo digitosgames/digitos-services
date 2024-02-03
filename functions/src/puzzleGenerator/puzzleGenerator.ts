@@ -1,85 +1,78 @@
-import { onRequest } from 'firebase-functions/v2/https';
 import * as logger from 'firebase-functions/logger';
 import * as admin from 'firebase-admin';
 import { FirestorePaths } from '../constants';
+import { PuzzleStep } from './PuzzleStep';
+import { https } from 'firebase-functions';
+import { GeneratePuzzleRequest } from './GeneratePuzzleRequest';
 
 admin.initializeApp();
 const db = admin.firestore();
 
-/**
- * Generates a set of unique random integers between 0 and 99
- */
-function randomIntegers(n = 6): Set<number> {
+function randomIntegers(n = 6, difficulty = 1): Set<number> {
     const integers = new Set<number>();
     while (integers.size < n) {
-        const nextInt = Math.floor(Math.random() * 100);
-        if (nextInt !== 0) integers.add(nextInt);
+        const nextInt = Math.floor(Math.random() * 100) + 1; // Ensuring non-zero integers
+        if (difficulty === 1 && nextInt > 9) continue; // For difficulty 1, limit to single-digit numbers
+        integers.add(nextInt);
     }
     return integers;
 }
 
-/**
- * Returns an array of valid operations between two integers
- */
-function validOperations(a: number, b: number) {
+function validOperations(a: number, b: number, difficulty: number) {
     const results = [];
+    // Basic operations for all difficulties
     results.push({ value: a + b, operation: `${a} + ${b}` });
-    results.push({ value: a * b, operation: `${a} * ${b}` });
-    if (a - b > 0) results.push({ value: a - b, operation: `${a} - ${b}` });
-    else results.push({ value: b - a, operation: `${b} - ${a}` });
-    if (b !== 0 && a % b === 0) {
-        results.push({ value: a / b, operation: `${a} / ${b}` });
-    } else if (a !== 0 && b % a === 0) {
-        results.push({ value: b / a, operation: `${b} / ${a}` });
-    }
-    return results;
-}
+    results.push({
+        value: Math.abs(a - b),
+        operation: a > b ? `${a} - ${b}` : `${b} - ${a}`,
+    });
 
-interface PuzzleStep {
-    set: Set<number>;
-    operation: string;
+    if (difficulty > 1) {
+        // For higher difficulties, include multiplication and division
+        results.push({ value: a * b, operation: `${a} * ${b}` });
+        if (b !== 0 && a % b === 0)
+            results.push({ value: a / b, operation: `${a} / ${b}` });
+        if (a !== 0 && b % a === 0)
+            results.push({ value: b / a, operation: `${b} / ${a}` });
+    }
+
+    return results.filter(op => op.value > 0 && op.value < 100); // Ensure results are valid
 }
 
 function calculateTarget(
     integers: Set<number>,
     target: number,
+    difficulty: number,
     depth = 0,
     maxDepth = 5,
-    history: PuzzleStep[] = []
+    history: PuzzleStep[] = [],
 ): { success: boolean; operations: PuzzleStep[] } {
-    if (integers.has(target)) {
-        return { success: true, operations: history };
-    }
-
-    if (depth === maxDepth) {
-        return { success: false, operations: [] };
-    }
+    if (integers.has(target)) return { success: true, operations: history };
+    if (depth === maxDepth) return { success: false, operations: [] };
 
     const integersArray = Array.from(integers);
-
     for (let i = 0; i < integersArray.length; i++) {
         for (let j = i + 1; j < integersArray.length; j++) {
             const a = integersArray[i];
             const b = integersArray[j];
-
-            const operations = validOperations(a, b);
+            const operations = validOperations(a, b, difficulty);
             for (const op of operations) {
-                if (op.value > 99) continue;
+                if (op.value > 99) continue; // Skip invalid results
 
                 const newIntegers = new Set(integers);
                 newIntegers.delete(a);
                 newIntegers.delete(b);
                 newIntegers.add(op.value);
 
-                // eslint-disable-next-line max-len
-                const result = calculateTarget(newIntegers, target, depth + 1, maxDepth, [
-                    ...history,
-                    { set: newIntegers, operation: op.operation },
-                ]);
-
-                if (result.success) {
-                    return result;
-                }
+                const result = calculateTarget(
+                    newIntegers,
+                    target,
+                    difficulty,
+                    depth + 1,
+                    maxDepth,
+                    [...history, { set: newIntegers, operation: op.operation }],
+                );
+                if (result.success) return result;
             }
         }
     }
@@ -87,48 +80,75 @@ function calculateTarget(
     return { success: false, operations: [] };
 }
 
-function generatePuzzle() {
-    const integers = randomIntegers();
-    console.log('Generated integers:', Array.from(integers));
+function generatePuzzle(difficulty = 1) {
+    const integers = randomIntegers(6, difficulty);
+    const target = Math.floor(Math.random() * 100) + 1;
+    const maxDepth = difficulty === 4 ? 5 : difficulty === 3 ? 4 : 3; // Adjust maxDepth based on difficulty
 
-    const target = Math.floor(Math.random() * 100);
-    const result = calculateTarget(integers, target);
+    const result = calculateTarget(integers, target, difficulty, 0, maxDepth);
 
     if (!result.success) {
         console.log(`Couldn't find a solution for target: ${target}`);
         return null;
     } else {
         console.log(`Operations to get to target ${target}:`);
-        for (const step of result.operations) {
-            console.log(step.operation);
-            console.log(`Using numbers: ${Array.from(step.set)}`);
-        }
+        result.operations.forEach(step => console.log(step.operation));
 
-        // Returning puzzle data
         return {
             initial_numbers: Array.from(integers),
             target_number: target,
-            difficulty: 0, // Adjust the difficulty as needed
+            difficulty, // Include difficulty in puzzle data
         };
     }
 }
 
-export const generateNewPuzzle = onRequest(async (request, response) => {
-    logger.info('generatePuzzleCloudFunction begin', { structuredData: true });
+export const generateNewPuzzle = https.onRequest(async (request, response) => {
+    logger.info('generatePuzzleCloudFunction begin', {
+        structuredData: true,
+    });
 
-    const puzzleData = generatePuzzle();
+    if (request.method !== 'POST') {
+        response
+            .status(400)
+            .send('Please send a POST request with a valid body');
+        return;
+    }
 
-    if (puzzleData) {
-        try {
-            const docRef = await db.collection(FirestorePaths.PUZZLE_COLLECTION).add(puzzleData);
-            console.log(`Puzzle stored in Firestore with ID: ${docRef.id}`);
-            // eslint-disable-next-line max-len
-            response.send(`Puzzle generated and stored in Firestore with ID: ${docRef.id}`);
-        } catch (error) {
-            console.error('Error storing puzzle in Firestore', error);
-            response.status(500).send('Failed to store puzzle in Firestore');
+    const requestBody: GeneratePuzzleRequest = request.body;
+
+    const difficulty = requestBody.difficulty
+        ? parseInt(requestBody.difficulty, 10)
+        : 1;
+    const numberOfPuzzles = requestBody.numberOfPuzzles
+        ? parseInt(requestBody.numberOfPuzzles, 10)
+        : 1;
+
+    const puzzlesToGenerate = [];
+    for (let i = 0; i < numberOfPuzzles; i++) {
+        const puzzleData = generatePuzzle(difficulty);
+        if (puzzleData) {
+            puzzlesToGenerate.push(puzzleData);
+        } else {
+            response
+                .status(500)
+                .send('Failed to generate the requested number of puzzles');
+            return;
         }
-    } else {
-        response.status(500).send('Failed to generate puzzle');
+    }
+
+    const batch = db.batch();
+    puzzlesToGenerate.forEach(puzzle => {
+        const docRef = db.collection(FirestorePaths.PUZZLE_COLLECTION).doc(); // Create a new document reference
+        batch.set(docRef, puzzle);
+    });
+
+    try {
+        await batch.commit();
+        response.send(
+            `Successfully generated and stored ${puzzlesToGenerate.length} puzzles.`,
+        );
+    } catch (error) {
+        console.error('Error storing puzzles in Firestore', error);
+        response.status(500).send('Failed to store puzzles in Firestore');
     }
 });
