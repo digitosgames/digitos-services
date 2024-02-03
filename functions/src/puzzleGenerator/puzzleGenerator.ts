@@ -5,6 +5,24 @@ import { PuzzleStep } from './PuzzleStep';
 import { https } from 'firebase-functions';
 import { GeneratePuzzleRequest } from './GeneratePuzzleRequest';
 
+// rules for the puzzle generator
+
+// Level 1: Puzzles solvable with only addition and subtraction,
+// requiring 1-2 operations with single-digit numbers. Designed for
+// beginners, this level emphasizes basic arithmetic in a non-overwhelming manner.
+
+// Level 2: Introduces multiplication and division, solvable within
+// 2-3 operations. This level starts to incorporate all four arithmetic
+// operations with puzzles designed to remain accessible, ensuring a smooth transition in complexity.
+
+// Level 3: Requires 3-4 operations, mandating at least one instance of
+// multiplication or division. Aimed at intermediate solvers, this level
+// challenges players to think strategically about the order and type of operations used.
+
+// Level 4: Demands solution in exactly 5 operations, including at least two
+// instances of multiplication or division. Designed for advanced solvers, it
+// necessitates strategic planning and precise operation selection, offering the highest difficulty.
+
 admin.initializeApp();
 const db = admin.firestore();
 
