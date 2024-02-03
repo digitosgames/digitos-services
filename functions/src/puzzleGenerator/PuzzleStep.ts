@@ -1,4 +1,4 @@
 export interface PuzzleStep {
-    set: Set<number>;
-    operation: string;
+    set: Set<number>
+    operation: string
 }

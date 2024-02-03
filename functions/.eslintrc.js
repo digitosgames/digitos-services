@@ -41,4 +41,4 @@ module.exports = {
         semi: 0,
         'max-len': ['error', { code: 120 }],
     },
-};
+}

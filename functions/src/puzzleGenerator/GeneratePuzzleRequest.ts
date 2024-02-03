@@ -1,4 +1,4 @@
 export interface GeneratePuzzleRequest {
-    difficulty?: string;
-    numberOfPuzzles?: string;
+    difficulty?: string
+    numberOfPuzzles?: string
 }
