@@ -149,6 +149,12 @@ export const generateNewPuzzle = https.onRequest(async (request, response) => {
     const difficulty = requestBody.difficulty
         ? parseInt(requestBody.difficulty, 10)
         : 1
+
+    if (difficulty < 1 || difficulty > 4) {
+        response.status(400).send('Difficulty must be between 1 and 4')
+        return
+    }
+
     const numberOfPuzzles = requestBody.numberOfPuzzles
         ? parseInt(requestBody.numberOfPuzzles, 10)
         : 1
