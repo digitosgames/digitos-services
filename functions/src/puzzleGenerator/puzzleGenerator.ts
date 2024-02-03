@@ -99,25 +99,36 @@ function calculateTarget(
 }
 
 function generatePuzzle(difficulty = 1) {
-    const integers = randomIntegers(6, difficulty)
-    const target = Math.floor(Math.random() * 100) + 1
-    const maxDepth = difficulty === 4 ? 5 : difficulty === 3 ? 4 : 3 // Adjust maxDepth based on difficulty
+    for (let attempt = 0; attempt < 10; attempt++) {
+        const integers = randomIntegers(6, difficulty)
+        const target = Math.floor(Math.random() * 100) + 1
+        const maxDepth = difficulty === 4 ? 5 : difficulty === 3 ? 4 : 3 // Adjust maxDepth based on difficulty
 
-    const result = calculateTarget(integers, target, difficulty, 0, maxDepth)
+        const result = calculateTarget(
+            integers,
+            target,
+            difficulty,
+            0,
+            maxDepth,
+        )
 
-    if (!result.success) {
-        console.log(`Couldn't find a solution for target: ${target}`)
-        return null
-    } else {
-        console.log(`Operations to get to target ${target}:`)
-        result.operations.forEach(step => console.log(step.operation))
+        if (result.success) {
+            console.log(`Operations to get to target ${target}:`)
+            result.operations.forEach(step => console.log(step.operation))
 
-        return {
-            initial_numbers: Array.from(integers),
-            target_number: target,
-            difficulty, // Include difficulty in puzzle data
+            return {
+                initial_numbers: Array.from(integers),
+                target_number: target,
+                difficulty,
+            }
         }
     }
+
+    // If the function hasn't returned after 10 attempts, recursively call itself to try again
+    logger.info(
+        'Unable to find a valid puzzle after 10 attempts, trying again...',
+    )
+    return generatePuzzle(difficulty)
 }
 
 export const generateNewPuzzle = https.onRequest(async (request, response) => {
@@ -147,6 +158,7 @@ export const generateNewPuzzle = https.onRequest(async (request, response) => {
         if (puzzleData) {
             puzzlesToGenerate.push(puzzleData)
         } else {
+            logger.error('Failed to generate the requested number of puzzles')
             response
                 .status(500)
                 .send('Failed to generate the requested number of puzzles')
