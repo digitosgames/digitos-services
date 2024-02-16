@@ -18,4 +18,4 @@
 //   response.send("Hello from Firebase!");
 // });
 
-export * from './puzzleGenerator'
+export * from './generateNewPuzzle'
